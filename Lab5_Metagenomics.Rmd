@@ -148,10 +148,19 @@ ps
 
 # Alpha Diversity
 
+# Question 4 & 5
+
 ```{r Alpha_Diversity}
 rnd <- estimate_richness( ps, measures=c("Observed", "ACE","Shannon", "Simpson")) %>% dplyr::select(-se.ACE)
 DT::datatable(rnd[1:2])
 df = as.data.frame(rnd[1:2])
 write.csv(df, "~/Labs/BIOL4315_Lab5/output/alpha_diversity.csv")
+rnd <- rnd %>% mutate(group = row.names(rnd))%>% inner_join(mdta, "group")
+rndl <- rnd %>% gather("Estimator", "Value", 1:4) %>% mutate(rd = if_else(Estimator == "Observed" | Estimator == "ACE", "Richness","Diversity"))
+library("RColorBrewer")
+p <- ggplot(rndl, aes(x=dpw, y=Value, color = Estimator, fill = Estimator))+
+  geom_bar(stat = "identity", position = position_dodge())+
+  facet_grid(rd~category, scales = "free")
+p + theme_bw() + scale_fill_brewer(palette = "Dark2") + scale_color_brewer(palette = "Greys")
 ```
 
