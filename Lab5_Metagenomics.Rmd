@@ -25,9 +25,35 @@ fnRs <- sort(list.files(data_dir, pattern="_R2_001.fastq", full.names = TRUE))
 sample.names <- stringr::str_split_fixed(basename(fnFs),"_",2)[,1]
 ```
 # Question 1
-```{r Quality_Control}
+```{r Quality_Control_Visualize}
 plotQualityProfile(fnFs[1:19])
 plotQualityProfile(fnRs[1:19])
 ```
-# mkdir filtered
+
+mkdir filtered
+
+```{r Filter_Trim}
+filtFs <- file.path("~/Labs/BIOL4315_Lab5/data/filtered", paste0(sample.names, "_F_filt.fastq.gz"))
+names(filtFs) <- sample.names
+filtRs <- file.path("~/Labs/BIOL4315_Lab5/data/filtered", paste0(sample.names, "_R_filt.fastq.gz"))
+names(filtRs) <- sample.names
+out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, truncLen=c(240,160), maxN=0, maxEE=c(2,2), truncQ = 2 ,rm.phix=TRUE, compress=TRUE, multithread = TRUE)
+```
+# Question 2
+
+```{r Denoising, warning = FALSE}
+errF <- learnErrors(filtFs, multithread=T)
+errR <- learnErrors(filtRs, multithread=T)
+plotErrors(errF, nominalQ=TRUE)
+plotErrors(errR, nominalQ=TRUE)
+dadaFs <- dada(filtFs, err=errF, multithread = TRUE)
+dadaRs <- dada(filtRs, err=errF, multithread = TRUE)
+```
+
+The error frequencies of the forward and reverse reads look similar.
+
+```{r PE_Merging}
+mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, verbose=TRUE)
+```
+
 
