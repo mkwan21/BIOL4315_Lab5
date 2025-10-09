@@ -13,7 +13,8 @@ knitr::opts_chunk$set(echo = TRUE)
 download.file(url = "https://mothur.s3.us-east-2.amazonaws.com/wiki/miseqsopdata.zip", destfile = "~/Labs/BIOL4315_Lab5/data/miseqsopdata.zip")
 unzip("~/Labs/BIOL4315_Lab5/data/miseqsopdata.zip", exdir = "~/Labs/BIOL4315_Lab5/data")
 download.file(url = "https://zenodo.org/record/4587955/files/silva_nr99_v138.1_wSpecies_train_set.fa.gz?download=1", destfile = "~/Labs/BIOL4315_Lab5/data/silva_nr99_v138.1_wSpecies_train_set.fa.gz")
-# gunzip silva_nr99_v138.1_wSpecies_train_set.fa.gz
+
+gunzip silva_nr99_v138.1_wSpecies_train_set.fa.gz
 
 ```{r Required_Libraries, include = FALSE}
 lapply(c("dada2","phyloseq","vegan","tidyverse", "Biostrings"), library, character.only = T)
@@ -52,8 +53,65 @@ dadaRs <- dada(filtRs, err=errF, multithread = TRUE)
 
 The error frequencies of the forward and reverse reads look similar.
 
+# Merge Paired Ends
 ```{r PE_Merging}
 mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, verbose=TRUE)
 ```
+```{r Sequence_Table}
+seqtab <- makeSequenceTable(mergers)
+seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=F, verbose=TRUE)
+```
+# Sanity Check
 
+```{r Sanity_Check}
+getN <- function(x){ 
+  sum(getUniques(x))
+}
+track <- cbind(out, sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab.nochim))
+colnames(track) <- c("input", "filtered", "denoisedF", "denoisedR", "merged", "nonchim")
+rownames(track) <- sample.names
+track <- as.data.frame(track) %>% mutate(prop_kept = round(nonchim/input*100,2))
+DT::datatable(track)
+```
+
+# Polishing Frequency Table
+
+```{r Polishing_1}
+ASV_tbl <- as.data.frame(seqtab.nochim) %>% `colnames<-`(base::paste("ASV", seq(1:ncol(seqtab.nochim)), sep = ""))
+ASV_tbl <- as.data.frame(t(ASV_tbl[-nrow(ASV_tbl),]))
+ASV_tbl <- ASV_tbl %>% mutate(rs = rowSums(ASV_tbl)) %>% filter(rs > 0) %>% dplyr::select(-rs)
+DT::datatable(ASV_tbl, options = list(scrollX = TRUE, autoWidth = TRUE))
+ASV_seqs <- DNAStringSet(base::colnames(seqtab.nochim) %>% `names<-`(base::paste("ASV",seq(1:ncol(seqtab.nochim)),sep = "")))
+```
+# Assign Taxonomy
+
+```{r Assign_Taxonomy}
+taxa <- assignTaxonomy(seqtab.nochim, "~/Labs/BIOL4315_Lab5/data/silva_nr99_v138.1_wSpecies_train_set.fa.gz", multithread=TRUE)
+taxa2 <- as.data.frame(taxa) %>% `row.names<-`(base::paste("ASV", seq(1:nrow(taxa)), sep = ""))
+DT::datatable(taxa2,options = list(scrollX = TRUE, autoWidth = TRUE))
+```
+
+# Polishing Taxonomy Table
+
+```{r Polishing_2}
+taxa2 <- taxa2 %>% filter(Family != "Mitochondria") %>% filter(Order != "Chloroplast")
+taxa3 <- taxa2 %>% mutate(ASVs = row.names(taxa2)) %>% dplyr::select(ASVs, everything())
+ASV_tbl2 <- ASV_tbl %>% mutate(ASVs=row.names(ASV_tbl)) %>% dplyr::select(ASVs, everything())
+taxa3 <- taxa3 %>% inner_join(ASV_tbl2, by = "ASVs")
+taxa2 <- taxa2 %>% filter(rownames(taxa2)%in%taxa3$ASVs)
+ASV_tbl <- ASV_tbl %>% filter(row.names(ASV_tbl) %in% taxa3$ASVs)
+taxa3[,(ncol(taxa2)+2):ncol(taxa3)] <- sweep(taxa3[,(ncol(taxa2)+2):ncol(taxa3)],2, colSums(taxa3[,(ncol(taxa2)+2):ncol(taxa3)]),'/')*100
+
+```
+# Exporting Microbiome
+
+```{r Microbiome}
+ASV_seqs[names(ASV_seqs)%in%ASV_tbl2$ASVs]
+writeXStringSet(ASV_seqs[names(ASV_seqs)%in%ASV_tbl2$ASVs], "~/Labs/BIOL4315_Lab5/output/microbiome.fasta")
+```
+# Question 3
+
+ASV19 Firmicutes and ASV207 Actinobacteriota could not be resolved down to genus/species.
+
+Using a BLAST search of the sequences the following results were obtained:
 
