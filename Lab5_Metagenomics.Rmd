@@ -9,4 +9,25 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## Data Retrieval
+download.file(url = "https://mothur.s3.us-east-2.amazonaws.com/wiki/miseqsopdata.zip", destfile = "~/Labs/BIOL4315_Lab5/data/miseqsopdata.zip")
+unzip("~/Labs/BIOL4315_Lab5/data/miseqsopdata.zip", exdir = "~/Labs/BIOL4315_Lab5/data")
+download.file(url = "https://zenodo.org/record/4587955/files/silva_nr99_v138.1_wSpecies_train_set.fa.gz?download=1", destfile = "~/Labs/BIOL4315_Lab5/data/silva_nr99_v138.1_wSpecies_train_set.fa.gz")
+# gunzip silva_nr99_v138.1_wSpecies_train_set.fa.gz
+
+```{r Required_Libraries, include = FALSE}
+lapply(c("dada2","phyloseq","vegan","tidyverse", "Biostrings"), library, character.only = T)
+```
+```{r Variables, include = FALSE}
+data_dir <- "~/Labs/BIOL4315_Lab5/data/MiSeq_SOP"
+fnFs <- sort(list.files(data_dir, pattern="_R1_001.fastq", full.names = TRUE))
+fnRs <- sort(list.files(data_dir, pattern="_R2_001.fastq", full.names = TRUE))
+sample.names <- stringr::str_split_fixed(basename(fnFs),"_",2)[,1]
+```
+# Question 1
+```{r Quality_Control}
+plotQualityProfile(fnFs[1:19])
+plotQualityProfile(fnRs[1:19])
+```
+# mkdir filtered
 
