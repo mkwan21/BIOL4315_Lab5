@@ -57,9 +57,12 @@ The error frequencies of the forward and reverse reads look similar.
 ```{r PE_Merging}
 mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, verbose=TRUE)
 ```
+# Sequence Table
+
 ```{r Sequence_Table}
 seqtab <- makeSequenceTable(mergers)
 seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=F, verbose=TRUE)
+DT::datatable(seqtab.nochim)
 ```
 # Sanity Check
 
@@ -111,7 +114,44 @@ writeXStringSet(ASV_seqs[names(ASV_seqs)%in%ASV_tbl2$ASVs], "~/Labs/BIOL4315_Lab
 ```
 # Question 3
 
-ASV19 Firmicutes and ASV207 Actinobacteriota could not be resolved down to genus/species.
+ASV184 Firmicutes and ASV207 Actinobacteriota could not be resolved down to genus/species.
+
+ASV184
+TACGTAGGGAGCAAGCGTTGTCCGGAATTACTGGGTGTAAAGGGAGCGTAGGCGGGAGGATAAGTTGAATGTGAAATCTA
+TGGGCTCAACCCATAGCTGCGTTCAAAACTGTTCTTCTTGAGTGAAGTAGAGGCAGGCGGAATTCCTAGTGTAGCGGTGA
+AATGCGTAGATATTAGGAGGAACACCAGTGGCGAAGGCGGCCTGCTGGGCTTTTACTGACGCTGAGGCTCGAAAGCGTGG
+GTAGCAAACAGG
+
+ASV207
+TACGTAGGGGGCGAGCGTTATCCGGATTCATTGGGCGTAAAGCGCGCGCAGGCGGACTCATAAGCGGAGCCTTTAATCTT
+GGGGCTTAACCTCAAGTCGGGCCCCGAACTGTGAGTCTCGAGTGTGGTAGGGGAAGGCGGAATTCCCGGTGTAGCGGTGG
+AATGCGCAGATATCGGGAAGAACACCGATGGCGAAGGCAGCCTTCTGGGCCATCACTGACGCTGAGGCGCGAAAGCTAGG
+GGAGCAAACAGG
+
 
 Using a BLAST search of the sequences the following results were obtained:
+
+!(~/Labs/BIOL4315_Lab5/BLAST_Actinobacteriota.png)
+!(~/Labs/BIOL4315_Lab5/BLAST_Firmicutes.png)
+
+
+
+# Phyloseq
+
+```{r Phyloseq}
+mdta <- read.delim(base::paste(data_dir,"mouse.dpw.metadata", sep = "/" ))
+mdta <- mdta %>% mutate(category = if_else(dpw > 100 , "Late","Early")) %>% mutate(gender = if_else(str_detect(group, "F"),"F","M")) %>% mutate(subject = str_extract(str_split_fixed(group, "D", 2)[,1],"(\\d)+")) %>% `row.names<-`(mdta$group)
+ps <- phyloseq(otu_table(as.matrix(ASV_tbl), taxa_are_rows=T), sample_data(mdta), tax_table(as.matrix(taxa2)))
+ps <- merge_phyloseq(ps, ASV_seqs)
+ps
+```
+
+# Alpha Diversity
+
+```{r Alpha_Diversity}
+rnd <- estimate_richness( ps, measures=c("Observed", "ACE","Shannon", "Simpson")) %>% dplyr::select(-se.ACE)
+DT::datatable(rnd[1:2])
+df = as.data.frame(rnd[1:2])
+write.csv(df, "~/Labs/BIOL4315_Lab5/output/alpha_diversity.csv")
+```
 
