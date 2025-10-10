@@ -57,12 +57,11 @@ The error frequencies of the forward and reverse reads look similar.
 ```{r PE_Merging}
 mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, verbose=TRUE)
 ```
-# Sequence Table
+# Frequency Table
 
 ```{r Sequence_Table}
 seqtab <- makeSequenceTable(mergers)
 seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=F, verbose=TRUE)
-DT::datatable(seqtab.nochim)
 ```
 # Sanity Check
 
@@ -117,12 +116,14 @@ writeXStringSet(ASV_seqs[names(ASV_seqs)%in%ASV_tbl2$ASVs], "~/Labs/BIOL4315_Lab
 ASV184 Firmicutes and ASV207 Actinobacteriota could not be resolved down to genus/species.
 
 ASV184
+
 TACGTAGGGAGCAAGCGTTGTCCGGAATTACTGGGTGTAAAGGGAGCGTAGGCGGGAGGATAAGTTGAATGTGAAATCTA
 TGGGCTCAACCCATAGCTGCGTTCAAAACTGTTCTTCTTGAGTGAAGTAGAGGCAGGCGGAATTCCTAGTGTAGCGGTGA
 AATGCGTAGATATTAGGAGGAACACCAGTGGCGAAGGCGGCCTGCTGGGCTTTTACTGACGCTGAGGCTCGAAAGCGTGG
 GTAGCAAACAGG
 
 ASV207
+
 TACGTAGGGGGCGAGCGTTATCCGGATTCATTGGGCGTAAAGCGCGCGCAGGCGGACTCATAAGCGGAGCCTTTAATCTT
 GGGGCTTAACCTCAAGTCGGGCCCCGAACTGTGAGTCTCGAGTGTGGTAGGGGAAGGCGGAATTCCCGGTGTAGCGGTGG
 AATGCGCAGATATCGGGAAGAACACCGATGGCGAAGGCAGCCTTCTGGGCCATCACTGACGCTGAGGCGCGAAAGCTAGG
@@ -131,8 +132,10 @@ GGAGCAAACAGG
 
 Using a BLAST search of the sequences the following results were obtained:
 
-!(~/Labs/BIOL4315_Lab5/BLAST_Actinobacteriota.png)
-!(~/Labs/BIOL4315_Lab5/BLAST_Firmicutes.png)
+![](BLAST_Firmicutes.png)
+
+![](BLAST_Actinobacteriota.png)
+The top hits for ASV184 and ASV207 were _M. coli_ and _P. caecicola_ respectively.
 
 
 
@@ -150,7 +153,7 @@ ps
 
 # Question 4 & 5
 
-```{r Alpha_Diversity}
+```{r Alpha_Diversity, warning = FALSE}
 rnd <- estimate_richness( ps, measures=c("Observed", "ACE","Shannon", "Simpson")) %>% dplyr::select(-se.ACE)
 DT::datatable(rnd[1:2])
 df = as.data.frame(rnd[1:2])
